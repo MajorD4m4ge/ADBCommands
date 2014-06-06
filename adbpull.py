@@ -22,7 +22,7 @@ def PullAPKs(applications, output):
     error = ''
     try:
         for app in applications:
-            p = subprocess.Popen('adb pull /data/app/' + app + ' ' + output, shell=True, stdout=subprocess.PIPE,
+            p = subprocess.call('adb pull /data/app/' + app + ' ' + output, shell=True, stdout=subprocess.PIPE,
                                  stderr=subprocess.STDOUT)
     except:
         error = 'Error: Cannot copy APK files.'
@@ -154,38 +154,44 @@ def main(argv):
             print('Error: Directory --> ' + str(outputpath) + ' does not exist.')
             sys.exit(1)
     Header(outputpath)
+    print('| [#] Listing APK Files.                                                   |')
     status, error, applications = ListAPKs()
     if status:
-        print('| [+] Listing APK Files.                                                   |')
+        print('| [+] Success.                                                             |')
     else:
-        print('| [-] Listing APK Files.                                                   |')
+        print('| [-] Failed.                                                             |')
         Failed(error)
+    print('| [#] Calculating AVD APK Hashes.                                          |')
     status, error, applicationhashes = GenerateHashAVD(applications)
     if status:
-        print('| [+] Calculating AVD APK Hashes.                                          |')
+        print('| [+] Success.                                                             |')
     else:
-        print('| [-] Calculating AVD APK Hashes.                                          |')
+        print('| [-] Failed.                                                             |')
         Failed(error)
+    print('| [#] Pulling APK Files.                                                   |')
     status, error = PullAPKs(applications, outputpath)
     if status:
-        print('| [+] Pulling APK Files.                                                   |')
+        print('| [+] Success.                                                             |')
     else:
-        print('| [-] Pulling APK Files.                                                   |')
+        print('| [-] Failed.                                                             |')
         Failed(error)
+    print('| [#] Calculating Local APK Hashes.                                        |')
     status, error, localapplicationhashes = GenerateHashLocal(outputpath)
     if status:
-        print('| [+] Calculating Local APK Hashes.                                        |')
+        print('| [+] Success.                                                             |')
     else:
-        print('| [-] Calculating Local APK Hashes.                                        |')
+        print('| [-] Failed.                                                             |')
         Failed(error)
+    print('| [#] Comparing APK Hashes.                                                |')
     status, error = CompareHashes(applicationhashes, localapplicationhashes)
     if status:
-        print('| [+] Comparing APK Hashes.                                                |')
+        print('| [+] Success.                                                             |')
     else:
-        print('| [-] Comparing APK Hashes.                                                |')
+        print('| [-] Failed.                                                             |')
         Failed(error)
-    Completed()
-    List(outputpath)
+    if not error == "":
+        Completed()
+        List(outputpath)
 
 
 main(sys.argv[1:])
