@@ -1,15 +1,213 @@
 __author__ = 'khanta'
 # MY Api Key for VirusTotal - bd527801758bee752fe0aef5a52e87f5020eb1359f0b3b0e458b596373db1ce0
-
+# http://code.activestate.com/recipes/146306/ -- multi
+# https://github.com/subbyte/virustotal/blob/master/virt.py
 import sys
-import hashlib
 import os
+import logging
 import subprocess
 import datetime
 import argparse
 import signal
+import http.client
+import mimetypes
+import json
+import time
+import hashlib
+
+import requests
+
 
 debug = 0
+
+
+def post_multipart(host, selector, fields, files):
+    """
+    Post fields and files to an http host as multipart/form-data.
+    fields is a sequence of (name, value) elements for regular form fields.
+    files is a sequence of (name, filename, value) elements for data to be uploaded as files
+    Return the server's response page.
+    """
+    content_type, body = encode_multipart_formdata(fields, files)
+    h = http.client.HTTPConnection(host)
+    h.putrequest('POST', selector)
+    h.putheader('content-type', content_type)
+    h.putheader('content-length', str(len(body)))
+    h.endheaders()
+    h.send(body.encode())
+    print(h.getresponse())
+    errcode, errmsg, headers = h.getresponse()
+    return h.file.read()
+
+
+def encode_multipart_formdata(fields, files):
+    """
+    fields is a sequence of (name, value) elements for regular form fields.
+    files is a sequence of (name, filename, value) elements for data to be uploaded as files
+    Return (content_type, body) ready for httplib.HTTP instance
+    """
+    BOUNDARY = '----------ThIs_Is_tHe_bouNdaRY_$'
+    CRLF = '\r\n'
+    L = []
+    for (key, value) in fields:
+        L.append('--' + BOUNDARY)
+        L.append('Content-Disposition: form-data; name="%s"' % key)
+        L.append('')
+        L.append(value)
+    for (key, filename, value) in files:
+        L.append('--' + BOUNDARY)
+        L.append('Content-Disposition: form-data; name="%s"; filename="%s"' % (key, filename))
+        L.append('Content-Type: %s' % get_content_type(filename))
+        L.append('')
+        L.append(value)
+    L.append('--' + BOUNDARY + '--')
+    L.append('')
+    body = CRLF.join(str(L))
+    content_type = 'multipart/form-data; boundary=%s' % BOUNDARY
+    return content_type, body
+
+
+def get_content_type(filename):
+    return mimetypes.guess_type(filename)[0] or 'application/octet-stream'
+
+
+def ScanVirusTotal(listoffiles):
+    status = True
+    error = ''
+    vt = VirusTotal()
+    vt.send_files(listoffiles)
+
+
+def sha256sum(filename):
+    """
+    Efficient sha256 checksum realization
+
+    Take in 8192 bytes each time
+    The block size of sha256 is 512 bytes
+    """
+    with open(filename, 'rb') as f:
+        m = hashlib.sha256()
+        while True:
+            data = f.read(8192)
+            if not data:
+                break
+            m.update(data)
+        return m.hexdigest()
+
+
+class VirusTotal(object):
+    def __init__(self):
+        self.apikey = 'bd527801758bee752fe0aef5a52e87f5020eb1359f0b3b0e458b596373db1ce0'
+        self.URL_BASE = "https://www.virustotal.com/vtapi/v2/"
+        self.HTTP_OK = 200
+
+        # whether the API_KEY is a public API. limited to 4 per min if so.
+        self.is_public_api = True
+        # whether a retrieval request is sent recently
+        self.has_sent_retrieve_req = False
+        # if needed (public API), sleep this amount of time between requests
+        self.PUBLIC_API_SLEEP_TIME = 20
+
+        self.logger = logging.getLogger("virt-log")
+        self.logger.setLevel(logging.INFO)
+        self.scrlog = logging.StreamHandler()
+        self.scrlog.setFormatter(logging.Formatter("[%(levelname)s] %(message)s"))
+        self.logger.addHandler(self.scrlog)
+        self.is_verboselog = False
+
+    def send_files(self, filenames):
+        """
+        Send files to scan
+
+        @param filenames: list of target files
+        """
+        url = self.URL_BASE + "file/scan"
+        attr = {"apikey": self.apikey}
+
+        for filename in filenames:
+            files = {"file": open(filename, 'rb')}
+            res = requests.post(url, data=attr, files=files)
+
+            if res.status_code == self.HTTP_OK:
+                resmap = json.loads(res.text)
+                if debug >= 3:
+                    print('Sent:\t\t\t\t\t' + filename)
+                    print('HTTP Response Code:\t\t' + str(res.status_code))
+                    print('Response_code:\t\t\t\t' + str(resmap["response_code"]))
+                    print('Scan_id:\t\t\t\t' + resmap["scan_id"])
+                    # if not self.is_verboselog:
+                    #    self.logger.info("sent1: %s, HTTP: %d, response_code: %d, scan_id: %s",
+                    #            os.path.basename(filename), res.status_code, resmap["response_code"], resmap["scan_id"])
+                    #else:
+                    #    self.logger.info("sent2: %s, HTTP: %d, content: %s", os.path.basename(filename), res.status_code, res.text)
+            else:
+                print('error')
+        return
+        # self.logger.warning("sent3: %s, HTTP: %d", os.path.basename(filename), res.status_code)
+
+    def retrieve_files_reports(self, filenames):
+        """
+        Retrieve Report for file
+
+        @param filename: target file
+        """
+        for filename in filenames:
+            res = self.retrieve_report(sha256sum(filename))
+
+            if res.status_code == self.HTTP_OK:
+                resmap = json.loads(res.text)
+                if not self.is_verboselog:
+                    self.logger.info(
+                        "retrieve report: %s, HTTP: %d, response_code: %d, scan_date: %s, positives/total: %d/%d",
+                        os.path.basename(filename), res.status_code, resmap["response_code"], resmap["scan_date"],
+                        resmap["positives"], resmap["total"])
+                else:
+                    self.logger.info("retrieve report: %s, HTTP: %d, content: %s", os.path.basename(filename),
+                                     res.status_code, res.text)
+            else:
+                self.logger.warning("retrieve report: %s, HTTP: %d", os.path.basename(filename), res.status_code)
+
+    def retrieve_from_meta(self, filename):
+        """
+        Retrieve Report for checksums in the metafile
+
+        @param filename: metafile, each line is a checksum, best use sha256
+        """
+        with open(filename) as f:
+            for line in f:
+                checksum = line.strip()
+                res = self.retrieve_report(checksum)
+
+                if res.status_code == self.HTTP_OK:
+                    resmap = json.loads(res.text)
+                    if not self.is_verboselog:
+                        self.logger.info(
+                            "retrieve report: %s, HTTP: %d, response_code: %d, scan_date: %s, positives/total: %d/%d",
+                            checksum, res.status_code, resmap["response_code"], resmap["scan_date"],
+                            resmap["positives"], resmap["total"])
+                    else:
+                        self.logger.info("retrieve report: %s, HTTP: %d, content: %s", os.path.basename(filename),
+                                         res.status_code, res.text)
+                else:
+                    self.logger.warning("retrieve report: %s, HTTP: %d", checksum, res.status_code)
+
+    def retrieve_report(self, chksum):
+        """
+        Retrieve Report for the file checksum
+
+        4 retrieval per min if only public API used
+
+        @param chksum: sha256sum of the target file
+        """
+        if self.has_sent_retrieve_req and self.is_public_api:
+            time.sleep(self.PUBLIC_API_SLEEP_TIME)
+
+        url = self.URL_BASE + "file/report"
+        params = {"apikey": self.apikey, "resource": chksum}
+        res = requests.post(url, data=params)
+        self.has_sent_retrieve_req = True
+        return res
+
 
 def signal_handler(signal, frame):
     print('Ctrl+C pressed. Exiting.')
@@ -129,7 +327,9 @@ def GenerateHashLocal(outputpath):
             print('Entering GenerateHashLocal')
         if debug >= 2:
             print('\tOutput path passed in: ' + str(outputpath))
-        filenames = next(os.walk(outputpath))[2]
+        # filenames = next(os.walk((outputpath)))[2]
+        #filenames = (os.path.abspath(filenames))
+        filenames = listdir_fullpath(outputpath)
         if debug >= 3:
             print('\tFilenames in local directory: ' + str(filenames))
         for file in filenames:
@@ -141,7 +341,7 @@ def GenerateHashLocal(outputpath):
         error = False
         status = 'Error: Cannot generate local hashes.'
     finally:
-        return status, error, localapplicationhashes
+        return status, error, localapplicationhashes, filenames
 
 
 def CompareHashes(applicationhashes, localapplicationhashes):
@@ -169,7 +369,16 @@ def Hasher(filename, hashtype):
             for chunk in iter(lambda: f.read(128 * md5.block_size), b''):
                 md5.update(chunk)
         return md5.hexdigest()
+    if hashtype == 'sha256':
+        sha256 = hashlib.sha256()
+        with open(filename, 'rb') as f:
+            for chunk in iter(lambda: f.read(128 * sha256.block_size), b''):
+                sha256.update(chunk)
+        return sha256.hexdigest()
 
+
+def listdir_fullpath(outputpath):
+    return [os.path.join(outputpath, f) for f in os.listdir(outputpath)]
 
 def Header(outputpath):
     print('')
@@ -184,12 +393,16 @@ def Header(outputpath):
     print('+--------------------------------------------------------------------------+')
 
 
-def List(outputpath):
+def List(outputpath, scan):
     print('|List of Applications                                                      |')
     print('+--------------------------------------------------------------------------+')
-    filenames = next(os.walk(outputpath))[2]
+    filenames = listdir_fullpath(outputpath)
     for file in filenames:
-        print('  App: ' + file + ' -- ' + Hasher(outputpath + '\\' + file, 'md5'))
+        print('  App: ' + file + ' -- ' + 'MD5Hash: ' + Hasher(file, 'md5'))
+    if scan:
+        for file in filenames:
+            print('  VirusTotal Link: ' + file + ' -- ' + 'https://www.virustotal.com/en/file/' + Hasher(file,
+                                                                                                         'sha256') + '/analysis/')
     print('+--------------------------------------------------------------------------+')
 
 
@@ -213,7 +426,7 @@ def main(argv):
                                      add_help=True)
     parser.add_argument('-o', '--output', help='The output path to write the apk files to.', required=True)
     parser.add_argument('-d', '--debug', help='The level of debugging.', required=False)
-    parser.add_argument('-s', '--scan', help='The level of debugging.', required=False)
+    parser.add_argument('-s', '--scan', help='The level of debugging.', action='store_false', required=False)
     parser.add_argument('-l', '--list', help='The level of debugging.', required=False)
     parser.add_argument('--version', action='version', version='%(prog)s 1.0')
     args = parser.parse_args()
@@ -258,7 +471,7 @@ def main(argv):
         print('| [-] Failed.                                                              |')
         Failed(error)
     print('| [#] Calculating Local APK Hashes.                                        |')
-    status, error, localapplicationhashes = GenerateHashLocal(outputpath)
+    status, error, localapplicationhashes, filenames = GenerateHashLocal(outputpath)
     if status:
         print('| [+] Success.                                                             |')
     else:
@@ -271,9 +484,12 @@ def main(argv):
     else:
         print('| [-] Failed.                                                              |')
         Failed(error)
+    if scan:
+        print('| [#] Uploading to VirusTotal.                                             |')
+        ScanVirusTotal(filenames)
     if status:
         Completed()
-        List(outputpath)
+        List(outputpath, scan)
 
 
 main(sys.argv[1:])
