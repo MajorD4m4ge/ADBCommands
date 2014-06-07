@@ -238,11 +238,13 @@ def DeviceCheck():
             if debug >= 2:
                 print('\tDevice attached.')
         else:
-            error = True
-            status = 'Error: Device not attached.'
+            if debug >= 2:
+                print('\tDevice not attached.')
+            error = 'Error: Device not attached.'
+            status = False
     except:
-        error = False
-        status = 'Error: Device not detected.'
+        error = 'Error: Device not detected.'
+        status = False
     finally:
         return status, error
 
@@ -394,7 +396,7 @@ def Header(outputpath):
 
 
 def List(outputpath, scan):
-    print('|List of Applications                                                      |')
+    print('|Output                                                                    |')
     print('+--------------------------------------------------------------------------+')
     filenames = listdir_fullpath(outputpath)
     for file in filenames:
@@ -421,12 +423,12 @@ def Completed():
 
 def main(argv):
     global debug
-
+    scan = False
     parser = argparse.ArgumentParser(description="A program to pull all apks off via the Android Debug Bridge.",
                                      add_help=True)
     parser.add_argument('-o', '--output', help='The output path to write the apk files to.', required=True)
     parser.add_argument('-d', '--debug', help='The level of debugging.', required=False)
-    parser.add_argument('-s', '--scan', help='The level of debugging.', action='store_false', required=False)
+    parser.add_argument('-s', '--scan', help='The level of debugging.', action='store_true', required=False)
     parser.add_argument('-l', '--list', help='The level of debugging.', required=False)
     parser.add_argument('--version', action='version', version='%(prog)s 1.0')
     args = parser.parse_args()
@@ -437,7 +439,7 @@ def main(argv):
             print('Error: Directory --> ' + str(outputpath) + ' does not exist.')
             sys.exit(1)
     if args.scan:
-        scan = args.scan
+        scan = True
     if args.debug:
         debug = args.debug
         debug = int(debug)
