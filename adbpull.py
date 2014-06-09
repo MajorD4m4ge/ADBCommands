@@ -2,6 +2,7 @@ __author__ = 'khanta'
 # MY Api Key for VirusTotal - bd527801758bee752fe0aef5a52e87f5020eb1359f0b3b0e458b596373db1ce0
 # http://code.activestate.com/recipes/146306/ -- multi
 # https://github.com/subbyte/virustotal/blob/master/virt.py
+# https://www.virustotal.com/en/documentation/public-api/
 import sys
 import os
 import logging
