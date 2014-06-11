@@ -95,6 +95,18 @@ def ListDeviceAPKs():
         return status, error, applications
 
 
+def ConverToInt(s):
+    status = True
+    error = ''
+
+    try:
+        ret = int(s)
+    except ValueError:
+        status = False
+        error = 'Error: Value entered is not an integer.'
+    finally:
+        return status, error, ret
+
 def Hasher(filename, hashtype):
     with open(filename, 'rb') as f:
         file = f.read()
@@ -107,7 +119,6 @@ def Hasher(filename, hashtype):
             return hashlib.sha256(file).hexdigest()
         else:
             return 'No Hashtype specified.'
-
 
 def Header(outputpath):
     print('')
@@ -184,5 +195,17 @@ def main(argv):
     else:
         print('| [-] Failed.                                                              |')
         Failed(error)
+    print('| Local APKs:                                                                  |')
+    for num, apps in localapplications.items():
+        print('| \t ' + str(num) + ' - ' + str(apps))
+    print(localapplications)
+    userselection = input("Select an application by number: ")
+    status, error, number = ConverToInt(userselection)
+    if status:
+        print('| [+] Success.                                                             |')
+    else:
+        print('| [-] Failed.                                                              |')
+        Failed(error)
+    print(localapplications[number])
 
 main(sys.argv[1:])
