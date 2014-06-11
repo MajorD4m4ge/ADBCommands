@@ -402,7 +402,7 @@ def List(outputpath, scan):
     filenames = listdir_fullpath(outputpath)
     for file in filenames:
         print('  App: ' + file + ' -- ' + 'MD5Hash: ' + Hasher(file, 'md5'))
-    if scan:
+    if not scan:
         for file in filenames:
             print('  VirusTotal Link: ' + file + ' -- ' + 'https://www.virustotal.com/en/file/' + Hasher(file,
                                                                                                          'sha256') + '/analysis/')
