@@ -98,6 +98,7 @@ def ListDeviceAPKs():
 def ConverToInt(s):
     status = True
     error = ''
+    ret = 0
 
     try:
         ret = int(s)
@@ -106,6 +107,12 @@ def ConverToInt(s):
         error = 'Error: Value entered is not an integer.'
     finally:
         return status, error, ret
+
+
+def ExistsInDictionary(name, devicedict):
+    if name in devicedict.values():
+        return True
+
 
 def Hasher(filename, hashtype):
     with open(filename, 'rb') as f:
@@ -140,7 +147,7 @@ def List(outputpath, scan):
 
 
 def Failed(error):
-    print('  * Error: ' + str(error))
+    print('  * ' + str(error))
     print('+--------------------------------------------------------------------------+')
     print('| Failed.                                                                  |')
     print('+--------------------------------------------------------------------------+')
@@ -198,14 +205,23 @@ def main(argv):
     print('| Local APKs:                                                                  |')
     for num, apps in localapplications.items():
         print('| \t ' + str(num) + ' - ' + str(apps))
-    print(localapplications)
+    if debug >= 2:
+        print('\tLocal Applications: ' + str(localapplications))
     userselection = input("Select an application by number: ")
+    if debug >= 2:
+        print('\tUser Selection: ' + userselection)
     status, error, number = ConverToInt(userselection)
     if status:
         print('| [+] Success.                                                             |')
     else:
         print('| [-] Failed.                                                              |')
         Failed(error)
-    print(localapplications[number])
+
+    if debug >= 2:
+        print('\tSelected application: ' + str(localapplications[number]))
+    application = localapplications[number]
+    if ExistsInDictionary(application, localapplications):
+        x = 1
+
 
 main(sys.argv[1:])
