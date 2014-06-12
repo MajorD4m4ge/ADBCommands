@@ -1,4 +1,5 @@
 __author__ = 'khanta'
+# http://stackoverflow.com/questions/2789462/find-package-name-for-android-apps-to-use-intent-to-launch-market-app-from-web - AAPT
 
 import argparse
 import sys
@@ -7,46 +8,19 @@ import hashlib
 import os
 import subprocess
 
+import adbpull
+
+
 debug = 0
 
 
-def DeviceCheck():
-    status = True
-    error = ''
-
-    try:
-        if debug >= 1:
-            print('Entering DeviceCheck')
-        templist = []
-        if debug >= 2:
-            print('\tLaunching command "adb devices"')
-        p = subprocess.Popen('adb devices', shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        for line in p.stdout.readlines():
-            if debug >= 3:
-                print('\tDevices: ' + str(line))
-            templist.append(line)
-        if debug >= 3:
-            print('\tTotal count of items: ' + str(len(templist)))
-        if (len(templist)) >= 3:
-            if debug >= 2:
-                print('\tDevice attached.')
-        else:
-            if debug >= 2:
-                print('\tDevice not attached.')
-            error = 'Error: Device not attached.'
-            status = False
-    except:
-        error = 'Error: Device not detected.'
-        status = False
-    finally:
-        return status, error
 
 
 def ListLocalAPKFiles(inputpath):
     status = True
     error = ''
     listoffiles = {}
-    x = 0
+    x = 1
 
     if debug >= 1:
         print('Entering ListLocalAPKFiles')
@@ -65,20 +39,19 @@ def ListLocalAPKFiles(inputpath):
 
     return status, error, listoffiles
 
-
 def ListDeviceAPKs():
     status = True
     error = ''
     # applications = []
     applications = {}
-    x = 0
+    x = 1
 
     try:
         if debug >= 1:
             print('Entering ListAPKs')
         if debug >= 2:
-            print('\tLaunching command "adb shell ls /data/app"')
-        p = subprocess.Popen('adb shell ls /data/app', shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            print('\tLaunching command "adb shell pm list packages"')
+        p = subprocess.Popen('adb shell pm list packages', shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         for line in p.stdout.readlines():
             if debug >= 3:
                 print('\tApplications on AVD: ' + str(line.decode("ASCII").rstrip()))
@@ -95,6 +68,52 @@ def ListDeviceAPKs():
         return status, error, applications
 
 
+def GetApplicationName(inputpath, application):
+    status = True
+    error = ''
+    package = ''
+
+    try:
+        if debug >= 1:
+            print('Entering ListAPKs')
+        if debug >= 2:
+            print('\tLaunching command "aapt dump badging"')
+        p = subprocess.Popen('c:\\adt\\sdk\\build-tools\\19.1.0\\aapt dump badging ' + inputpath + '\\' + application,
+                             shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        for line in p.stdout.readlines():
+            temp = line.decode("ASCII").rstrip()
+            if 'package: name=' in temp:
+                data = (temp.split('\''))
+                break
+            else:
+                continue
+
+        package = data[1]
+    except:
+        error = 'Error: Cannot list APK files.'
+        status = False
+    finally:
+        return status, error, package
+
+
+def UninstallAPK(application):
+    status = True
+    error = ''
+
+    try:
+        if debug >= 1:
+            print('Entering UninstallAPK')
+        if debug >= 2:
+            print('\tLaunching command "adb shell pm uninstall ' + str(application) + '"')
+        p = subprocess.call('adb shell pm uninstall ' + application, shell=True, stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT)
+        print(p.wait())
+    except:
+        error = 'Error: Cannot list APK files.'
+        status = False
+    finally:
+        return status, error
+
 def ConverToInt(s):
     status = True
     error = ''
@@ -109,9 +128,24 @@ def ConverToInt(s):
         return status, error, ret
 
 
-def ExistsInDictionary(name, devicedict):
-    if name in devicedict.values():
-        return True
+def ExistsInDictionary(name, devicedict, type):
+    status = True
+    error = ''
+    if type.upper() == 'KEY':
+        if name in devicedict.keys():
+            status = True
+        else:
+            status = False
+            error = 'Error: Number not within range.'
+    if type.upper() == 'VALUE':
+        if name in devicedict.values():
+            status = True
+        else:
+            status = False
+            error = 'Not sure yet.'
+    return status, error
+
+
 
 
 def Hasher(filename, hashtype):
@@ -159,7 +193,6 @@ def Completed():
     print('+--------------------------------------------------------------------------+')
 
 
-
 def main(argv):
     global debug
     parser = argparse.ArgumentParser(description="A program to determine files touched by initial launch of APK.",
@@ -181,47 +214,61 @@ def main(argv):
         debug = args.debug
         debug = int(debug)
     Header(outputpath)
-    print('| [#] Checking status of device.                                               |')
-    status, error = DeviceCheck()
+    print('| [#] Checking status of device.                                           |')
+    status, error = adbpull.DeviceCheck()
     if status:
         print('| [+] Success.                                                             |')
     else:
         print('| [-] Failed.                                                              |')
         Failed(error)
-    print('| [#] Listing local APK Files.                                                 |')
+    print('| [#] Listing local APK Files.                                             |')
     status, error, localapplications = ListLocalAPKFiles(inputpath)
     if status:
         print('| [+] Success.                                                             |')
     else:
         print('| [-] Failed.                                                              |')
         Failed(error)
-    print('| [#] Listing Device APK Files.                                                |')
+    print('| [#] Listing Device APK Files.                                            |')
+    print('+--------------------------------------------------------------------------+')
     status, error, deviceapplications = ListDeviceAPKs()
     if status:
         print('| [+] Success.                                                             |')
     else:
         print('| [-] Failed.                                                              |')
         Failed(error)
-    print('| Local APKs:                                                                  |')
+    print('| Local APKs:                                                              |')
+    print('+--------------------------------------------------------------------------+')
     for num, apps in localapplications.items():
-        print('| \t ' + str(num) + ' - ' + str(apps))
+        # print('| \t ' + str(num) + ' - ' + str(apps))
+        #print((str(num) + ' - ' + str(apps)).center(76))
+        print(('| \t ' + str(num) + ' - ' + str(apps)).ljust(74, ' ') + '|')
+    print('+--------------------------------------------------------------------------+')
     if debug >= 2:
         print('\tLocal Applications: ' + str(localapplications))
     userselection = input("Select an application by number: ")
     if debug >= 2:
         print('\tUser Selection: ' + userselection)
     status, error, number = ConverToInt(userselection)
-    if status:
-        print('| [+] Success.                                                             |')
-    else:
+    if not status:
         print('| [-] Failed.                                                              |')
         Failed(error)
 
+    status, error = ExistsInDictionary(number, localapplications, 'KEY')
+    if status:
+        application = localapplications[number]
+    else:
+        print('| [-] Failed.                                                              |')
+        Failed(error)
+    status, error, application = GetApplicationName(inputpath, application)
+    status, error = ExistsInDictionary('package:' + application, deviceapplications, 'VALUE')
+    if status:
+        print('Application exists on AVD.')
+        UninstallAPK(application)
     if debug >= 2:
         print('\tSelected application: ' + str(localapplications[number]))
-    application = localapplications[number]
-    if ExistsInDictionary(application, localapplications):
-        x = 1
-
+        # #TODO Install Application
+        ##TODO Set Timestamp
+        ##TODO Get Files Modded
+        ##TODO Pull files Modded
 
 main(sys.argv[1:])

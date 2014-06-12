@@ -330,8 +330,6 @@ def GenerateHashLocal(outputpath):
             print('Entering GenerateHashLocal')
         if debug >= 2:
             print('\tOutput path passed in: ' + str(outputpath))
-        # filenames = next(os.walk((outputpath)))[2]
-        #filenames = (os.path.abspath(filenames))
         filenames = listdir_fullpath(outputpath)
         if debug >= 3:
             print('\tFilenames in local directory: ' + str(filenames))
@@ -495,4 +493,5 @@ def main(argv):
         List(outputpath, scan)
 
 
-main(sys.argv[1:])
+if __name__ == '__main__':
+    main(sys.argv[1:])
