@@ -1,6 +1,7 @@
 __author__ = 'khanta'
 # http://stackoverflow.com/questions/2789462/find-package-name-for-android-apps-to-use-intent-to-launch-market-app-from-web - AAPT
-
+# http://developer.android.com/tools/devices/managing-avds-cmdline.html
+# echo no | android.bat create avd -n test -t android-17 --abi default/x86
 import argparse
 import sys
 import datetime
@@ -25,15 +26,20 @@ def ListLocalAPKFiles(inputpath):
     if debug >= 1:
         print('Entering ListLocalAPKFiles')
     if debug >= 2:
-        print('\tOutput path passed in: ' + str(inputpath))
-
-    for root, dirs, files in os.walk(inputpath):
-        for file in files:
-            if file.endswith('.apk'):
-                if debug >= 2:
-                    print('\tIterator:Filename - ' + str(x) + ':' + file)
-                listoffiles[x] = file
-                x += 1
+        print('\tInput path passed in: ' + str(inputpath))
+    for filename in os.listdir(inputpath):
+        if filename.endswith('apk'):
+            if debug >= 2:
+                print('\tIterator:Filename - ' + str(x) + ':' + filename)
+            listoffiles[x] = filename
+            x += 1
+    # for root, dirs, files in os.walk(inputpath):
+    # for file in files:
+    #         if file.endswith('.apk'):
+    #             if debug >= 2:
+    #                 print('\tIterator:Filename - ' + str(x) + ':' + file)
+    #             listoffiles[x] = file
+    #             x += 1
     if debug >= 3:
         print('\tList of Files: ' + str(listoffiles))
 
@@ -78,8 +84,9 @@ def GetApplicationName(inputpath, application):
             print('GetApplicationName ListAPKs')
         if debug >= 2:
             print('\tLaunching command "aapt dump badging"')
-        p = subprocess.Popen('c:\\adt\\sdk\\build-tools\\19.1.0\\aapt dump badging ' + inputpath + '\\' + application,
-                             shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        p = subprocess.Popen(
+            'c:\\android\\sdk\\build-tools\\19.1.0\\aapt dump badging ' + inputpath + '\\' + application,
+            shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         for line in p.stdout.readlines():
             temp = line.decode("ASCII").rstrip()
             if 'package: name=' in temp:
@@ -106,10 +113,16 @@ def UninstallAPK(application):
         if debug >= 1:
             print('Entering UninstallAPK')
         if debug >= 2:
+            print('\tApplication name passed in: ' + str(application))
             print('\tLaunching command "adb shell pm uninstall ' + str(application) + '"')
-        p = subprocess.call('adb shell pm uninstall ' + application, shell=True, stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT)
-        print(p.wait())
+        p = subprocess.check_output('adb shell pm uninstall ' + application)
+        temp = p.decode("ASCII").rstrip()
+        if debug >= 2:
+            print('\tReturn text: ' + str(temp))
+        if temp.lower() != 'success':
+            error = 'Error: Cannot uninstall APK.'
+            status = False
+            return status, error
     except:
         error = 'Error: Cannot uninstall APK.'
         status = False
@@ -125,10 +138,18 @@ def InstallAPK(inputpath, application):
         if debug >= 1:
             print('Entering InstallAPK')
         if debug >= 2:
-            print('\tLaunching command "adb install ' + inputpath + '\\' + str(application) + '"')
-        p = subprocess.call('adb install ' + inputpath + '\\' + str(application), shell=True, stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT)
-        print(p.wait())
+            print('\tInput path passed in: ' + str(inputpath))
+            print('\tApplication passed in: ' + str(application))
+            print('\tLaunching command "adb install ' + inputpath + str(application) + '"')
+        p = subprocess.check_output('adb install ' + inputpath + '\\' + str(application))
+        temp = p.decode("ASCII").rstrip()
+        if debug >= 2:
+            print('\tReturn text: ' + str(temp))
+        if 'success' not in temp.lower():
+            error = 'Error: Cannot install APK.'
+            status = False
+            return status, error
+
     except:
         error = 'Error: Cannot install APK.'
         status = False
@@ -167,7 +188,38 @@ def ExistsInDictionary(name, devicedict, type):
             error = 'Not sure yet.'
     return status, error
 
+def GetModifiedFiles():
+    status = True
+    error = ''
 
+    status, error = adbpull.DeviceCheck()
+    if not status:
+        status = False
+        return status, error
+
+    p = subprocess.check_output(
+        'adb shell find / \( -type f -a -newer /mnt/sdcard/starttime \) -o -type d -a \( -name dev -o -name proc -o -name sys \) -prune | grep -v -e "^/dev$" -e "^/proc$" -e "^/sys$"')
+    # temp = p.decode("ASCII").rstrip()
+    #print(p.decode("ASCII").rstrip())
+    #print(temp)
+    return status, error, p
+
+
+def CreateTimeStamp():
+    status = True
+    error = ''
+
+    status, error = adbpull.DeviceCheck()
+    if not status:
+        status = False
+        return status, error
+    else:
+        if debug >= 1:
+            print('Entering CreateTimeStamp')
+            if debug >= 2:
+                print('\tLaunching command "adb shell touch /mnt/sdcard/starttime"')
+            subprocess.call('adb shell touch /mnt/sdcard/starttime')
+    return status, error
 
 
 def Hasher(filename, hashtype):
@@ -274,7 +326,6 @@ def main(argv):
     if not status:
         print('| [-] Failed.                                                              |')
         Failed(error)
-
     status, error = ExistsInDictionary(number, localapplications, 'KEY')
     if status:
         application = localapplications[number]
@@ -294,18 +345,41 @@ def main(argv):
     status, error = ExistsInDictionary('package:' + package, deviceapplications, 'VALUE')
     if status:
         print('| [#] Application exists on AVD. Uninstalling.                             |')
-        status, error = UninstallAPK(application)
+        status, error = UninstallAPK(package)
         if status:
             print('| [+] Success.                                                             |')
         else:
             print('| [-] Failed.                                                              |')
-        Failed(error)
+            Failed(error)
     print('| [#] Installing application on AVD.                                        |')
     status, error = InstallAPK(inputpath, application)
+    if status:
+        print('| [+] Success.                                                             |')
+    else:
+        print('| [-] Failed.                                                              |')
+        Failed(error)
+    print('| [#] Creating initial timestamp file.                                      |')
+    status, error = CreateTimeStamp()
+    if status:
+        print('| [+] Success.                                                             |')
+    else:
+        print('| [-] Failed.                                                              |')
+        Failed(error)
+    # LaunchMainItent()
+    go = input(" Go?: ")
+    print('| [#] Gathering modified files.                                             |')
+    status, error, modifiedfiles = GetModifiedFiles()
+    print(modifiedfiles)
+    if status:
+        print('| [+] Success.                                                             |')
+    else:
+        print('| [-] Failed.                                                              |')
+        #TODO Set Timestamp
+        #TODO Get Files Modded
+        #TODO Pull files Modded
+        #TODO Do Device Check every time
+        #TODO Choose a list of emulator devices - start it if stopped
+        #TODO Start NIC traffic capture - do it - stop device stop nic traffic capture
 
-        # #TODO Install Application
-        ##TODO Set Timestamp
-        ##TODO Get Files Modded
-        ##TODO Pull files Modded
 
 main(sys.argv[1:])

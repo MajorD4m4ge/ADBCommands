@@ -227,6 +227,37 @@ def DeviceCheck():
             print('Entering DeviceCheck')
         templist = []
         if debug >= 2:
+            print('\tLaunching command "adb get-state"')
+        p = subprocess.Popen('adb get-state', shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        for line in p.stdout.readlines():
+            if debug >= 3:
+                print('\tDevices: ' + str(line))
+            output = line.decode("ASCII").rstrip()
+        if output.lower() == 'device':
+            if debug >= 2:
+                print('\tDevice attached.')
+            status = True
+        else:
+            if debug >= 2:
+                print('\tDevice not attached.')
+            error = 'Error: Device not attached.'
+            status = False
+    except:
+        error = 'Error: Device not detected.'
+        status = False
+    finally:
+        return status, error
+
+
+def DeviceCheck1():
+    status = True
+    error = ''
+
+    try:
+        if debug >= 1:
+            print('Entering DeviceCheck')
+        templist = []
+        if debug >= 2:
             print('\tLaunching command "adb devices"')
         p = subprocess.Popen('adb devices', shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         for line in p.stdout.readlines():
