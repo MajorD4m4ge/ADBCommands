@@ -75,7 +75,7 @@ def GetApplicationName(inputpath, application):
 
     try:
         if debug >= 1:
-            print('Entering ListAPKs')
+            print('GetApplicationName ListAPKs')
         if debug >= 2:
             print('\tLaunching command "aapt dump badging"')
         p = subprocess.Popen('c:\\adt\\sdk\\build-tools\\19.1.0\\aapt dump badging ' + inputpath + '\\' + application,
@@ -89,8 +89,10 @@ def GetApplicationName(inputpath, application):
                 continue
 
         package = data[1]
+        if debug >= 2:
+            print('\tPackage name: ' + str(package))
     except:
-        error = 'Error: Cannot list APK files.'
+        error = 'Error: Cannot get package name.'
         status = False
     finally:
         return status, error, package
@@ -109,10 +111,30 @@ def UninstallAPK(application):
                             stderr=subprocess.STDOUT)
         print(p.wait())
     except:
-        error = 'Error: Cannot list APK files.'
+        error = 'Error: Cannot uninstall APK.'
         status = False
     finally:
         return status, error
+
+
+def InstallAPK(inputpath, application):
+    status = True
+    error = ''
+
+    try:
+        if debug >= 1:
+            print('Entering InstallAPK')
+        if debug >= 2:
+            print('\tLaunching command "adb install ' + inputpath + '\\' + str(application) + '"')
+        p = subprocess.call('adb install ' + inputpath + '\\' + str(application), shell=True, stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT)
+        print(p.wait())
+    except:
+        error = 'Error: Cannot install APK.'
+        status = False
+    finally:
+        return status, error
+
 
 def ConverToInt(s):
     status = True
@@ -245,7 +267,7 @@ def main(argv):
     print('+--------------------------------------------------------------------------+')
     if debug >= 2:
         print('\tLocal Applications: ' + str(localapplications))
-    userselection = input("Select an application by number: ")
+    userselection = input(" Select an application by number: ")
     if debug >= 2:
         print('\tUser Selection: ' + userselection)
     status, error, number = ConverToInt(userselection)
@@ -259,13 +281,28 @@ def main(argv):
     else:
         print('| [-] Failed.                                                              |')
         Failed(error)
-    status, error, application = GetApplicationName(inputpath, application)
-    status, error = ExistsInDictionary('package:' + application, deviceapplications, 'VALUE')
+    print('+--------------------------------------------------------------------------+')
+    print('|                                                                          |')
+    print('+--------------------------------------------------------------------------+')
+    print('| [#] Enumerating package name.                                            |')
+    status, error, package = GetApplicationName(inputpath, application)
     if status:
-        print('Application exists on AVD.')
-        UninstallAPK(application)
-    if debug >= 2:
-        print('\tSelected application: ' + str(localapplications[number]))
+        print('| [+] Success.                                                             |')
+    else:
+        print('| [-] Failed.                                                              |')
+        Failed(error)
+    status, error = ExistsInDictionary('package:' + package, deviceapplications, 'VALUE')
+    if status:
+        print('| [#] Application exists on AVD. Uninstalling.                             |')
+        status, error = UninstallAPK(application)
+        if status:
+            print('| [+] Success.                                                             |')
+        else:
+            print('| [-] Failed.                                                              |')
+        Failed(error)
+    print('| [#] Installing application on AVD.                                        |')
+    status, error = InstallAPK(inputpath, application)
+
         # #TODO Install Application
         ##TODO Set Timestamp
         ##TODO Get Files Modded
