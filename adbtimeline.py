@@ -11,6 +11,7 @@ __author__ = 'khanta'
 # adb shell chmod 755 /system/vendor/bin/busybox-i686
 # adb install com.golfnow.android.teetimes-1.apk
 # adb shell mount -o remount rw /sdcard
+# adb shell tcpdump -s 0 -w /mnt/sdcard/$app.pcap
 # adb shell touch /mnt/sdcard/starttime
 # adb shell am start -a android.intent.action.MAIN -n com.golfnow.android.teetimes/.ui.StartupActivity
 # sleep 5s
