@@ -380,6 +380,16 @@ def main(argv):
         #TODO Do Device Check every time
         #TODO Choose a list of emulator devices - start it if stopped
         #TODO Start NIC traffic capture - do it - stop device stop nic traffic capture
-
+        # TODO Make sure HAXD Driver is installed
+        #TODO Create AVD --> android.bat create avd -n test -t android-17 --abi default/x86
+        #TODO Start AVD --> emulator.exe -avd test -partition-size 512 -no-snapshot -tcpdump <pcap>
+        #TODO adb shell
+        #   adb shell mount -o rw,remount -t yaffs2 /dev/block/mtdblock0 /system
+        #   adb shell mkdir -p /system/vendor/bin
+        #   spawn off adb push busybox-i686 /system/vendor/bin
+        #   adb shell chmod 755 /system/vendor/bin/busybox-i686
+        #   adb shell /system/vendor/bin/busybox-i686 find
+        #TODO Delete AVD --> android.bat delete avd -n test
+        #TODO Start AVD -->
 
 main(sys.argv[1:])
