@@ -388,7 +388,8 @@ def main(argv):
         #   adb shell mkdir -p /system/vendor/bin
         #   spawn off adb push busybox-i686 /system/vendor/bin
         #   adb shell chmod 755 /system/vendor/bin/busybox-i686
-        #   adb shell /system/vendor/bin/busybox-i686 find
+        # adb shell /system/vendor/bin/busybox-i686 find xyz
+        
         #TODO Delete AVD --> android.bat delete avd -n test
         #TODO Start AVD -->
 
