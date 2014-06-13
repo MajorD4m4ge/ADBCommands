@@ -2,6 +2,22 @@ __author__ = 'khanta'
 # http://stackoverflow.com/questions/2789462/find-package-name-for-android-apps-to-use-intent-to-launch-market-app-from-web - AAPT
 # http://developer.android.com/tools/devices/managing-avds-cmdline.html
 # echo no | android.bat create avd -n test -t android-17 --abi default/x86
+
+# REM C:\android\sdk\tools\mksdcard -l e 512M mysdcard.img
+# REM C:\android\sdk\tools\emulator.exe -avd test -partition-size 512 -noaudio -no-snapshot -sdcard c:\temp\mysdcard.img#-tcpdump emu.pcap
+# adb shell mount -o rw,remount -t yaffs2 /dev/block/mtdblock0 /system
+# adb shell mkdir -p /system/vendor/bin
+# adb push busybox-i686 /system/vendor/bin
+# adb shell chmod 755 /system/vendor/bin/busybox-i686
+# adb install com.golfnow.android.teetimes-1.apk
+# adb shell mount -o remount rw /sdcard
+# adb shell touch /mnt/sdcard/starttime
+# adb shell am start -a android.intent.action.MAIN -n com.golfnow.android.teetimes/.ui.StartupActivity
+# adb shell /system/vendor/bin/busybox-i686 find / \( -type f -a -newer /mnt/sdcard/starttime \) -o -type d -a \( -name dev -o -name proc -o -name sys \) -prune | grep -v -e
+# "^/dev$" -e "^/proc$" -e "^/sys$"
+
+
+
 import argparse
 import sys
 import datetime
@@ -378,7 +394,7 @@ def main(argv):
         #TODO Get Files Modded
         #TODO Pull files Modded
         #TODO Do Device Check every time
-        #TODO Choose a list of emulator devices - start it if stopped
+        # TODO Choose a list of emulator devices - start it if stopcd\ped
         #TODO Start NIC traffic capture - do it - stop device stop nic traffic capture
         # TODO Make sure HAXD Driver is installed
         #TODO Create AVD --> android.bat create avd -n test -t android-17 --abi default/x86
@@ -389,7 +405,7 @@ def main(argv):
         #   spawn off adb push busybox-i686 /system/vendor/bin
         #   adb shell chmod 755 /system/vendor/bin/busybox-i686
         # adb shell /system/vendor/bin/busybox-i686 find xyz
-        
+
         #TODO Delete AVD --> android.bat delete avd -n test
         #TODO Start AVD -->
 
