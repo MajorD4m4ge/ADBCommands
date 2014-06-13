@@ -3,7 +3,7 @@ __author__ = 'khanta'
 # http://developer.android.com/tools/devices/managing-avds-cmdline.html
 # echo no | android.bat create avd -n test -t android-17 --abi default/x86
 
-# REM C:\android\sdk\tools\mksdcard -l e 512M mysdcard.img
+# REM C:\android\sdk\tools\mksdcard -l e 512M c:\temp\mysdcard.img
 # REM C:\android\sdk\tools\emulator.exe -avd test -partition-size 512 -noaudio -no-snapshot -sdcard c:\temp\mysdcard.img#-tcpdump emu.pcap
 # adb shell mount -o rw,remount -t yaffs2 /dev/block/mtdblock0 /system
 # adb shell mkdir -p /system/vendor/bin
@@ -13,8 +13,8 @@ __author__ = 'khanta'
 # adb shell mount -o remount rw /sdcard
 # adb shell touch /mnt/sdcard/starttime
 # adb shell am start -a android.intent.action.MAIN -n com.golfnow.android.teetimes/.ui.StartupActivity
-# adb shell /system/vendor/bin/busybox-i686 find / \( -type f -a -newer /mnt/sdcard/starttime \) -o -type d -a \( -name dev -o -name proc -o -name sys \) -prune | grep -v -e
-# "^/dev$" -e "^/proc$" -e "^/sys$"
+# sleep 5s
+# adb shell /system/vendor/bin/busybox-i686 find / \( -type f -a -newer /mnt/sdcard/starttime \) -o -type d -a \( -name dev -o -name proc -o -name sys \) -prune | grep -v -e "^/dev$" -e "^/proc$" -e "^/sys$"
 
 
 
