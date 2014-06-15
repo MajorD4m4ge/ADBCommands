@@ -16,8 +16,13 @@ __author__ = 'khanta'
 # adb shell am start -a android.intent.action.MAIN -n com.golfnow.android.teetimes/.ui.StartupActivity
 # sleep 5s
 # adb shell /system/vendor/bin/busybox-i686 find / \( -type f -a -newer /mnt/sdcard/starttime \) -o -type d -a \( -name dev -o -name proc -o -name sys \) -prune | grep -v -e "^/dev$" -e "^/proc$" -e "^/sys$"
-
-
+# http://stackoverflow.com/questions/305378/get-list-of-tables-db-schema-dump-etc-in-sqlite-databases
+# identify files, if sqllite, check majic and print out schema, tables.
+# con = sqlite3.connect('database.db')
+# cursor = con.cursor()
+# cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+# print(cursor.fetchall())
+# https://github.com/codasus/django-sqlcipher
 
 import argparse
 import sys
@@ -409,5 +414,6 @@ def main(argv):
 
         #TODO Delete AVD --> android.bat delete avd -n test
         #TODO Start AVD -->
+
 
 main(sys.argv[1:])
