@@ -6,6 +6,7 @@ import sys
 from Crypto.Cipher import AES
 
 
+
 # secret = 'intrepidlearner1'
 
 
@@ -73,9 +74,9 @@ def main(argv):
     encoded, error, value = encrypt(challenge, secretkey)
     if not error:
         print('|                                                                          |')
-        print('|[+] Challenge Phone: ' + challenge.(74, ' ') + '|')
-        print('|[+] Encryption Key: ' + secretkey.ljust(74, ' ') + '|')
-        print('|[*] Encoded Value: ' + encoded.ljust(74, ' ') + '|')
+        print('| [>] Challenge Phone:\t' + challenge.ljust(51, ' ') + '|')
+        print('| [>] Encryption Key:\t' + secretkey.ljust(51, ' ') + '|')
+        print('| [*] Encoded Value:\t' + encoded.ljust(51, ' ') + '|')
         print('+--------------------------------------------------------------------------+')
     else:
         Failed(value)
