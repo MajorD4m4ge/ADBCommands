@@ -1,4 +1,3 @@
-__author__ = 'khanta'
 # http://stackoverflow.com/questions/2789462/find-package-name-for-android-apps-to-use-intent-to-launch-market-app-from-web - AAPT
 # http://developer.android.com/tools/devices/managing-avds-cmdline.html
 # echo no | c:\adt\sdk\tools\android.bat create avd -n test -t android-17 --abi default/x86
@@ -263,7 +262,7 @@ def Header(outputpath):
     print('+--------------------------------------------------------------------------+')
     print('|APK File retriever.                                                       |')
     print('+---------------------------------------------------------------------------')
-    print('|Author: Tahir Khan - tkhan9@gmu.edu                                       |')
+    print('|Author: tkhan9@gmu.edu                                                    |')
     print('+--------------------------------------------------------------------------+')
     print('  Date Run: ' + str(datetime.datetime.now()))
     print('+--------------------------------------------------------------------------+')
